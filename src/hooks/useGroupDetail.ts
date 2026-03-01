@@ -131,6 +131,126 @@ export function useGroupDetail(groupId: string | undefined) {
     [groupId]
   );
 
+  const updateGroup = useCallback(
+    async (payload: { name?: string; description?: string | null }) => {
+      if (!groupId) return;
+      const { error: err } = await supabase
+        .from('groups')
+        .update({
+          ...(payload.name !== undefined && { name: payload.name.trim() }),
+          ...(payload.description !== undefined && {
+            description: payload.description?.trim() || null,
+          }),
+        })
+        .eq('id', groupId);
+      if (err) throw new Error(err.message);
+      setGroup((prev) =>
+        prev
+          ? {
+              ...prev,
+              ...(payload.name !== undefined && { name: payload.name.trim() }),
+              ...(payload.description !== undefined && {
+                description: payload.description?.trim() || null,
+              }),
+            }
+          : null
+      );
+    },
+    [groupId]
+  );
+
+  const deleteGroup = useCallback(async () => {
+    if (!groupId) return;
+    const { error: err } = await supabase.from('groups').delete().eq('id', groupId);
+    if (err) throw new Error(err.message);
+  }, [groupId]);
+
+  const removeAbonnement = useCallback(
+    async (abonnementId: string) => {
+      const { error: err } = await supabase
+        .from('abonnements')
+        .delete()
+        .eq('id', abonnementId);
+      if (err) throw new Error(err.message);
+      setAbonnement(null);
+      setPlan(null);
+    },
+    []
+  );
+
+  const createAbonnement = useCallback(
+    async (payload: {
+      plan_id: string;
+      started_at: string;
+      ends_at?: string | null;
+    }) => {
+      if (!groupId) return;
+      const { data, error: err } = await supabase
+        .from('abonnements')
+        .insert({
+          group_id: groupId,
+          plan_id: payload.plan_id,
+          started_at: payload.started_at,
+          ends_at: payload.ends_at || null,
+        })
+        .select('*')
+        .single();
+      if (err) throw new Error(err.message);
+      const abo = data as Abonnement;
+      setAbonnement(abo);
+      if (abo.plan_id) {
+        const { data: planData, error: planErr } = await supabase
+          .from('plans')
+          .select('*')
+          .eq('id', abo.plan_id)
+          .single();
+        if (!planErr) setPlan((planData as Plan) ?? null);
+      }
+    },
+    [groupId]
+  );
+
+  const deleteGoal = useCallback(async (goalId: number) => {
+    const { error: err } = await supabase.from('goals').delete().eq('id', goalId);
+    if (err) throw new Error(err.message);
+    setGoals((prev) => prev.filter((g) => g.id !== goalId));
+  }, []);
+
+  const updateAbonnement = useCallback(
+    async (
+      abonnementId: string,
+      payload: {
+        plan_id?: string;
+        started_at?: string;
+        ends_at?: string | null;
+      }
+    ) => {
+      const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      if (payload.plan_id !== undefined) updates.plan_id = payload.plan_id;
+      if (payload.started_at !== undefined) updates.started_at = payload.started_at;
+      if (payload.ends_at !== undefined) updates.ends_at = payload.ends_at ?? null;
+
+      const { data, error: err } = await supabase
+        .from('abonnements')
+        .update(updates)
+        .eq('id', abonnementId)
+        .select('*')
+        .single();
+      if (err) throw new Error(err.message);
+      const abo = data as Abonnement;
+      setAbonnement(abo);
+      if (abo.plan_id) {
+        const { data: planData, error: planErr } = await supabase
+          .from('plans')
+          .select('*')
+          .eq('id', abo.plan_id)
+          .single();
+        if (!planErr) setPlan((planData as Plan) ?? null);
+      }
+    },
+    []
+  );
+
   return {
     group,
     abonnement,
@@ -141,5 +261,11 @@ export function useGroupDetail(groupId: string | undefined) {
     error,
     refetch: fetch,
     updateMemberRole,
+    updateGroup,
+    deleteGroup,
+    removeAbonnement,
+    createAbonnement,
+    updateAbonnement,
+    deleteGoal,
   };
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, AlertCircle, UsersRound } from 'lucide-react';
+import { Search, AlertCircle, UsersRound, Plus } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -19,6 +20,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -28,6 +37,7 @@ import {
 } from '@/components/ui/pagination';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { useGroups } from '@/hooks/useGroups';
+import { toast } from '@/lib/toast';
 import type { GroupWithMeta } from '@/types/group';
 
 function formatDate(value: string | null): string {
@@ -46,6 +56,9 @@ function formatDate(value: string | null): string {
 export function Groups() {
   const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({ name: '', description: '' });
+  const [creating, setCreating] = useState(false);
 
   const {
     groups,
@@ -56,7 +69,29 @@ export function Groups() {
     isLoading,
     error,
     setSearch,
+    createGroup,
+    refetch,
   } = useGroups();
+
+  const handleCreate = async () => {
+    if (!createForm.name.trim()) return;
+    setCreating(true);
+    try {
+      const id = await createGroup({
+        name: createForm.name.trim(),
+        description: createForm.description.trim() || null,
+      });
+      toast.success('Groupe créé.');
+      setCreateOpen(false);
+      setCreateForm({ name: '', description: '' });
+      await refetch();
+      navigate(`/groups/${id}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erreur lors de la création.');
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,6 +145,16 @@ export function Groups() {
               {totalCount} groupe{totalCount !== 1 ? 's' : ''}
             </CardDescription>
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setCreateOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Créer un groupe
+          </Button>
           <form
             onSubmit={handleSearchSubmit}
             className="flex flex-wrap items-center gap-2"
@@ -127,6 +172,7 @@ export function Groups() {
               Rechercher
             </Button>
           </form>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -216,6 +262,43 @@ export function Groups() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Créer un groupe</DialogTitle>
+            <DialogDescription>Nom et description du nouveau groupe</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="create-name">Nom</Label>
+              <Input
+                id="create-name"
+                value={createForm.name}
+                onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Nom du groupe"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="create-description">Description</Label>
+              <Input
+                id="create-description"
+                value={createForm.description}
+                onChange={(e) => setCreateForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="Description (optionnel)"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleCreate} disabled={!createForm.name.trim() || creating}>
+              {creating ? 'Création…' : 'Créer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

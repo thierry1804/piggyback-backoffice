@@ -104,6 +104,23 @@ export function useGroups(initialSearch = '') {
     setPage(Math.max(1, Math.min(p, Math.ceil(totalCount / PAGE_SIZE) || 1)));
   }, [totalCount]);
 
+  const createGroup = useCallback(
+    async (payload: { name: string; description?: string | null }) => {
+      const { data, error: err } = await supabase
+        .from('groups')
+        .insert({
+          name: payload.name.trim(),
+          description: payload.description?.trim() || null,
+        })
+        .select('id')
+        .single();
+      if (err) throw new Error(err.message);
+      await fetchGroups();
+      return data?.id as string;
+    },
+    [fetchGroups]
+  );
+
   return {
     groups,
     totalCount,
@@ -116,5 +133,6 @@ export function useGroups(initialSearch = '') {
     refetch: fetchGroups,
     search,
     setSearch,
+    createGroup,
   };
 }

@@ -30,10 +30,16 @@ ALTER TABLE public.group_invitations ENABLE ROW LEVEL SECURITY;
 
 -- Supprimer les anciennes politiques backoffice si vous les aviez créées
 DROP POLICY IF EXISTS "backoffice_superadmin_select_users" ON public.users;
+DROP POLICY IF EXISTS "backoffice_superadmin_update_users" ON public.users;
+DROP POLICY IF EXISTS "backoffice_superadmin_delete_users" ON public.users;
 DROP POLICY IF EXISTS "backoffice_superadmin_select_roles" ON public.roles;
 DROP POLICY IF EXISTS "backoffice_superadmin_select_groups" ON public.groups;
+DROP POLICY IF EXISTS "backoffice_superadmin_insert_groups" ON public.groups;
+DROP POLICY IF EXISTS "backoffice_superadmin_update_groups" ON public.groups;
+DROP POLICY IF EXISTS "backoffice_superadmin_delete_groups" ON public.groups;
 DROP POLICY IF EXISTS "backoffice_superadmin_select_user_groups" ON public.user_groups;
 DROP POLICY IF EXISTS "backoffice_superadmin_select_goals" ON public.goals;
+DROP POLICY IF EXISTS "backoffice_superadmin_delete_goals" ON public.goals;
 DROP POLICY IF EXISTS "backoffice_superadmin_select_transactions" ON public.transactions;
 DROP POLICY IF EXISTS "backoffice_superadmin_select_abonnements" ON public.abonnements;
 DROP POLICY IF EXISTS "backoffice_superadmin_select_plans" ON public.plans;
@@ -43,10 +49,23 @@ DROP POLICY IF EXISTS "backoffice_superadmin_insert_group_invitations" ON public
 DROP POLICY IF EXISTS "backoffice_superadmin_delete_group_invitations" ON public.group_invitations;
 DROP POLICY IF EXISTS "backoffice_superadmin_update_plans" ON public.plans;
 DROP POLICY IF EXISTS "backoffice_superadmin_update_abonnements" ON public.abonnements;
+DROP POLICY IF EXISTS "backoffice_superadmin_delete_abonnements" ON public.abonnements;
+DROP POLICY IF EXISTS "backoffice_superadmin_insert_abonnements" ON public.abonnements;
 
--- public.users : le superadmin peut tout lire
+-- public.users : le superadmin peut tout lire et mettre à jour
 CREATE POLICY "backoffice_superadmin_select_users"
 ON public.users FOR SELECT
+TO authenticated
+USING (public.is_superadmin());
+
+CREATE POLICY "backoffice_superadmin_update_users"
+ON public.users FOR UPDATE
+TO authenticated
+USING (public.is_superadmin())
+WITH CHECK (public.is_superadmin());
+
+CREATE POLICY "backoffice_superadmin_delete_users"
+ON public.users FOR DELETE
 TO authenticated
 USING (public.is_superadmin());
 
@@ -56,14 +75,32 @@ ON public.roles FOR SELECT
 TO authenticated
 USING (public.is_superadmin());
 
--- public.groups
+-- public.groups (lecture + CRUD)
 CREATE POLICY "backoffice_superadmin_select_groups"
 ON public.groups FOR SELECT
 TO authenticated
 USING (public.is_superadmin());
 
+CREATE POLICY "backoffice_superadmin_insert_groups"
+ON public.groups FOR INSERT
+TO authenticated
+WITH CHECK (public.is_superadmin());
+
+CREATE POLICY "backoffice_superadmin_update_groups"
+ON public.groups FOR UPDATE
+TO authenticated
+USING (public.is_superadmin())
+WITH CHECK (public.is_superadmin());
+
+CREATE POLICY "backoffice_superadmin_delete_groups"
+ON public.groups FOR DELETE
+TO authenticated
+USING (public.is_superadmin());
+
 -- public.user_groups
 DROP POLICY IF EXISTS "backoffice_superadmin_update_user_groups" ON public.user_groups;
+DROP POLICY IF EXISTS "backoffice_superadmin_insert_user_groups" ON public.user_groups;
+DROP POLICY IF EXISTS "backoffice_superadmin_delete_user_groups" ON public.user_groups;
 CREATE POLICY "backoffice_superadmin_select_user_groups"
 ON public.user_groups FOR SELECT
 TO authenticated
@@ -75,9 +112,24 @@ TO authenticated
 USING (public.is_superadmin())
 WITH CHECK (public.is_superadmin());
 
--- public.goals
+CREATE POLICY "backoffice_superadmin_insert_user_groups"
+ON public.user_groups FOR INSERT
+TO authenticated
+WITH CHECK (public.is_superadmin());
+
+CREATE POLICY "backoffice_superadmin_delete_user_groups"
+ON public.user_groups FOR DELETE
+TO authenticated
+USING (public.is_superadmin());
+
+-- public.goals (lecture + suppression)
 CREATE POLICY "backoffice_superadmin_select_goals"
 ON public.goals FOR SELECT
+TO authenticated
+USING (public.is_superadmin());
+
+CREATE POLICY "backoffice_superadmin_delete_goals"
+ON public.goals FOR DELETE
 TO authenticated
 USING (public.is_superadmin());
 
@@ -99,17 +151,27 @@ TO authenticated
 USING (public.is_superadmin())
 WITH CHECK (public.is_superadmin());
 
--- public.abonnements (lecture + mise à jour)
+-- public.abonnements (lecture + CRUD)
 CREATE POLICY "backoffice_superadmin_select_abonnements"
 ON public.abonnements FOR SELECT
 TO authenticated
 USING (public.is_superadmin());
+
+CREATE POLICY "backoffice_superadmin_insert_abonnements"
+ON public.abonnements FOR INSERT
+TO authenticated
+WITH CHECK (public.is_superadmin());
 
 CREATE POLICY "backoffice_superadmin_update_abonnements"
 ON public.abonnements FOR UPDATE
 TO authenticated
 USING (public.is_superadmin())
 WITH CHECK (public.is_superadmin());
+
+CREATE POLICY "backoffice_superadmin_delete_abonnements"
+ON public.abonnements FOR DELETE
+TO authenticated
+USING (public.is_superadmin());
 
 -- public.goal_events
 CREATE POLICY "backoffice_superadmin_select_goal_events"
